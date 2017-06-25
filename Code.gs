@@ -5,6 +5,7 @@ var folderRejectedFiles = DriveApp.getFolderById('0B5AX8tprgBH8WGd0NVp1Y0NDZzA')
 var folderTemplates = DriveApp.getFolderById('0B5AX8tprgBH8Z2ZyVXJHTjVrcFE');//contains templates
 var folderTemp = DriveApp.getFolderById('0B5AX8tprgBH8d2VIMWhoRUZ0RjA');//Temp folder
 var folderPDFout = DriveApp.getFolderById('0B5AX8tprgBH8TnoyeENLZWNmOEU');//PDF output folder
+var logSheet = SpreadsheetApp.openById('18KuXT8NbG_MZJkUW2TYNX1EPlF_9HeZF_RbD7uHrlEA').getSheetByName('Log');
 
 function dropFolderExtraction() {
  var dropFolder = folderCSVin.getFiles();
@@ -44,15 +45,24 @@ function csvParser(fileID, fileName) {
 }
 
 function recordInjector(recordArray, fileName, fileID) {
+ try {
   var sourceTemplate = folderTemplates.getFilesByName(recordArray[0]).next();
-  var newDocument = sourceTemplate.makeCopy(folderTemp).getId();
+  var newDocument = sourceTemplate.makeCopy(recordArray[0] + '_' + recordArray[2] + '_' + Utilities.formatDate(new Date(), "EST", "MM-dd-yyyy"), folderTemp).getId();
   var template = DocumentApp.openById(newDocument);
    for (i = 0, s = 1; i < recordArray.length; i++, s++) {
+     try {
     template.getBody().replaceText('{0' + s.toString() + '}', recordArray[i]);
+    template.getHeader().replaceText('{0' + s.toString() + '}', recordArray[i]);
+    template.getFooter().replaceText('{0' + s.toString() + '}', recordArray[i]);
+     } catch (e) {
+    }
    }
   template.saveAndClose();
   folderPDFout.createFile(template).getAs('application/pdf');
   writeLog('File Injection [Successful]: "'+ fileName + '" ' + '(' + fileID + ')');
+ } catch (e) {
+   writeLog('An error has occurred');
+ }
 }
 
 function moveFiles(sourceFolder, destinationFolder) {
@@ -65,7 +75,6 @@ function moveFiles(sourceFolder, destinationFolder) {
 }
 
 function writeLog(string) {
-var logSheet = SpreadsheetApp.openById('18KuXT8NbG_MZJkUW2TYNX1EPlF_9HeZF_RbD7uHrlEA').getSheetByName('Log');
 logSheet.insertRowsAfter(1,1);
 logSheet.getRange('A2').setValue(Utilities.formatDate(new Date(), "EST", "MM-dd-yyyy'@'HH:mm:ss") + '  ' + string);
 }
