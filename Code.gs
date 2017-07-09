@@ -5,30 +5,40 @@ var folderRejectedFiles = DriveApp.getFolderById('0B5AX8tprgBH8WGd0NVp1Y0NDZzA')
 var folderTemplates = DriveApp.getFolderById('0B5AX8tprgBH8Z2ZyVXJHTjVrcFE');//contains templates
 var folderTemp = DriveApp.getFolderById('0B5AX8tprgBH8d2VIMWhoRUZ0RjA');//Temp folder
 var folderPDFout = DriveApp.getFolderById('0B5AX8tprgBH8TnoyeENLZWNmOEU');//PDF output folder
+var folderTestIn = DriveApp.getFolderById('0B5AX8tprgBH8TWdHY2Y3SWpib1k');//Intake folder for test data
+var folderTestOut = DriveApp.getFolderById('0B5AX8tprgBH8ZGUzSEFka0dpVzA');//Intake folder for test data
 var logSheet = SpreadsheetApp.openById('18KuXT8NbG_MZJkUW2TYNX1EPlF_9HeZF_RbD7uHrlEA').getSheetByName('Log');
+
+//Control intake of production files
+var testMode = false;
+
 
 function dropFolderExtraction() {
  var dropFolder = folderCSVin.getFiles();
-  LockService.getScriptLock().tryLock(10000);
-  if (LockService.getScriptLock().hasLock() == true) {      
+ LockService.getScriptLock().tryLock(10000);
+  if (LockService.getScriptLock().hasLock() == true && testMode == false) {      
     while (dropFolder.hasNext()) {
      var file = dropFolder.next();
      var fileFormat = file.getMimeType();
      var fileID = file.getId();
      var fileName = file.getName();
      var fileOwner = file.getOwner().getName() + ' (' + file.getOwner().getEmail() + ')';
-    if (fileFormat == 'text/csv') {
-     folderLoaderIn.addFile(DriveApp.getFileById(fileID));
-     folderCSVin.removeFile(DriveApp.getFileById(fileID));
-     writeLog('File Received [ACCEPTED]: "'+ fileName + '" ' + '(' + fileID + ') ' + 'Format: ' + fileFormat + ' Transmitted by: ' + fileOwner);
-     csvParser(fileID, fileName);
-     } else {
-     folderRejectedFiles.addFile(DriveApp.getFileById(fileID));
-     folderCSVin.removeFile(DriveApp.getFileById(fileID));
-     writeLog('File Received [REJECTED]: "'+ fileName + '" ' + '(' + fileID + ') ' + 'Format: ' + fileFormat + ' Transmitted by: ' + fileOwner);
-     }
+       if (fileFormat == 'text/csv' && fileName.indexOf('-test') == -1) {
+       folderLoaderIn.addFile(DriveApp.getFileById(fileID));
+       folderCSVin.removeFile(DriveApp.getFileById(fileID));
+       writeLog('File Received [ACCEPTED]: "'+ fileName + '" ' + '(' + fileID + ') ' + 'Format: ' + fileFormat + ' Transmitted by: ' + fileOwner);
+         writeLog(fileName.indexOf('-test'));
+       csvParser(fileID, fileName);
+       } else {
+       folderRejectedFiles.addFile(DriveApp.getFileById(fileID));
+       folderCSVin.removeFile(DriveApp.getFileById(fileID));
+       writeLog('File Received [REJECTED]: "'+ fileName + '" ' + '(' + fileID + ') ' + 'Format: ' + fileFormat + ' Transmitted by: ' + fileOwner);
+     }  
    }
-  LockService.getScriptLock().releaseLock();
+   LockService.getScriptLock().releaseLock();
+   folderCSVin.setName('CSV.IN (Online)');
+  } else {
+   folderCSVin.setName('CSV.IN (Offline)');
  }
 }
 
@@ -39,10 +49,24 @@ function csvParser(fileID, fileName) {
         for (p = 0; p < data[r].length; p++) {//start parsing in 1st position
          record.push(data[r][p]);
         }
-      recordInjector(record, fileName, fileID);
+      preprocessor(record, fileName, fileID);
     }
     writeLog('File Parse [Successful]: "'+ fileName + '" ' + '(' + fileID + ')');
 }
+
+function preprocessor(recordArray, fileName, fileID) {
+  switch(recordArray[0]) {
+    case 'Affiliate1':
+        if (recordArray[8].match(/[$]/) == null) {
+        recordArray[8] = '$' + recordArray[8];
+      }
+        break;
+    default:
+        break;
+}
+  recordInjector(recordArray, fileName, fileID);
+}
+
 
 function recordInjector(recordArray, fileName, fileID) {
  try {
@@ -58,13 +82,53 @@ function recordInjector(recordArray, fileName, fileID) {
     }
    }
   template.saveAndClose();
-  folderPDFout.createFile(template).getAs('application/pdf');
+   if(testMode == true || fileName.indexOf('-test') !== -1) {
+    folderTestOut.createFile(template).getAs('application/pdf');
+   } else {
+    folderPDFout.createFile(template).getAs('application/pdf');
+   }  
   writeLog('File Injection [Successful]: "'+ fileName + '" ' + '(' + fileID + ')');
  } catch (e) {
-   writeLog('An error has occurred');
+   writeLog('An error has occurred' + e);
  }
 }
 
+function manualCSVinTest() {//Grabs Most Recent to least recent...
+  var dropFolder = folderCSVin.getFiles();
+  if (testMode == true) {      
+     var file = dropFolder.next();
+     var fileFormat = file.getMimeType();
+     var fileID = file.getId();
+     var fileName = file.getName();
+     var fileOwner = file.getOwner().getName() + ' (' + file.getOwner().getEmail() + ')';
+       if (fileFormat == 'text/csv' && fileName.indexOf('-test') !== -1) {
+       folderLoaderIn.addFile(DriveApp.getFileById(fileID));
+       folderCSVin.removeFile(DriveApp.getFileById(fileID));
+       writeLog('TEST File Received [ACCEPTED]: "'+ fileName + '" ' + '(' + fileID + ') ' + 'Format: ' + fileFormat + ' Transmitted by: ' + fileOwner);
+       csvParser(fileID, fileName);
+       } else {
+       writeLog('NO TEST FILE DETECTED');
+      }  
+   }
+}
+
+function manualTestIn() {//Grabs Most Recent to least recent...
+  var dropFolder = folderTestIn.getFiles();
+     var file = dropFolder.next();
+     var fileFormat = file.getMimeType();
+     var fileID = file.getId();
+     var fileName = file.getName();
+     var fileOwner = file.getOwner().getName() + ' (' + file.getOwner().getEmail() + ')';
+       if (fileFormat == 'text/csv' && fileName.indexOf('-test') !== -1) {
+       folderLoaderIn.addFile(DriveApp.getFileById(fileID));
+       folderTestIn.removeFile(DriveApp.getFileById(fileID));
+       writeLog('TEST File Received [ACCEPTED]: "'+ fileName + '" ' + '(' + fileID + ') ' + 'Format: ' + fileFormat + ' Transmitted by: ' + fileOwner);
+       csvParser(fileID, fileName);
+       } else {
+       writeLog('NO TEST FILE DETECTED');
+      }  
+}
+/*
 function moveFiles(sourceFolder, destinationFolder) {
   var sourceFiles = sourceFolder.getFiles();
   while (sourceFiles.hasNext()) {
@@ -74,6 +138,15 @@ function moveFiles(sourceFolder, destinationFolder) {
   }
 }
 
+function stringCheck(sourceString, searchString) {
+  if (sourceString.match(searchString) !== null) {
+    var stringEvaluation = true;
+    } else {
+    var stringEvaluation = false;
+  }
+  return stringEvaluation
+}
+*/
 function writeLog(string) {
 logSheet.insertRowsAfter(1,1);
 logSheet.getRange('A2').setValue(Utilities.formatDate(new Date(), "EST", "MM-dd-yyyy'@'HH:mm:ss") + '  ' + string);
