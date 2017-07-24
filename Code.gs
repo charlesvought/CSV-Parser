@@ -54,20 +54,6 @@ function csvParser(fileID, fileName) {
     writeLog('File Parse [Successful]: "'+ fileName + '" ' + '(' + fileID + ')');
 }
 
-function preprocessor(recordArray, fileName, fileID) {
-  switch(recordArray[0]) {
-    case 'Affiliate1':
-        if (recordArray[8].match(/[$]/) == null) {
-        recordArray[8] = '$' + recordArray[8];
-      }
-        break;
-    default:
-        break;
-}
-  recordInjector(recordArray, fileName, fileID);
-}
-
-
 function recordInjector(recordArray, fileName, fileID) {
  try {
   var sourceTemplate = folderTemplates.getFilesByName(recordArray[0]).next();
@@ -152,6 +138,6 @@ logSheet.insertRowsAfter(1,1);
 logSheet.getRange('A2').setValue(Utilities.formatDate(new Date(), "EST", "MM-dd-yyyy'@'HH:mm:ss") + '  ' + string);
 }
 
-function authenticator() {
-Logger.clear();
+function initialize() {
+return;
 }
