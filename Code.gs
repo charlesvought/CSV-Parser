@@ -10,7 +10,7 @@ var folderTestOut = DriveApp.getFolderById('0B5AX8tprgBH8ZGUzSEFka0dpVzA');//Int
 var logSheet = SpreadsheetApp.openById('18KuXT8NbG_MZJkUW2TYNX1EPlF_9HeZF_RbD7uHrlEA').getSheetByName('Log');
 
 //Control intake of production files
-var testMode = false;
+var testMode = true;
 
 
 function dropFolderExtraction() {
@@ -27,7 +27,6 @@ function dropFolderExtraction() {
        folderLoaderIn.addFile(DriveApp.getFileById(fileID));
        folderCSVin.removeFile(DriveApp.getFileById(fileID));
        writeLog('File Received [ACCEPTED]: "'+ fileName + '" ' + '(' + fileID + ') ' + 'Format: ' + fileFormat + ' Transmitted by: ' + fileOwner);
-         writeLog(fileName.indexOf('-test'));
        csvParser(fileID, fileName);
        } else {
        folderRejectedFiles.addFile(DriveApp.getFileById(fileID));
@@ -94,7 +93,7 @@ function manualCSVinTest() {//Grabs Most Recent to least recent...
        csvParser(fileID, fileName);
        } else {
        writeLog('NO TEST FILE DETECTED');
-      }  
+      }
    }
 }
 
@@ -114,6 +113,21 @@ function manualTestIn() {//Grabs Most Recent to least recent...
        writeLog('NO TEST FILE DETECTED');
       }  
 }
+
+
+// https://stackoverflow.com/questions/15414077/merge-multiple-pdfs-into-one-pdf
+function mergePDF() {
+var files = folderPDFout.getFiles();
+var tempBlob = Utilities.newBlob('').setName('blob')
+for( var i in files ) {
+    var blobs = tempBlob.setBytes(files.next().getBlob().setContentTypeFromExtension().getBytes());
+    Logger.log(blobs);
+  }
+var myPDF = Utilities.newBlob(blobs).setName('bloboutput').getAs("application/pdf");
+//folderPDFout.createFile(myPDF);
+}
+
+
 /*
 function moveFiles(sourceFolder, destinationFolder) {
   var sourceFiles = sourceFolder.getFiles();
