@@ -7,7 +7,7 @@ var folderTemp = DriveApp.getFolderById('0B5AX8tprgBH8d2VIMWhoRUZ0RjA');//Temp f
 var folderPDFout = DriveApp.getFolderById('0B5AX8tprgBH8TnoyeENLZWNmOEU');//PDF output folder
 var folderTestIn = DriveApp.getFolderById('0B5AX8tprgBH8TWdHY2Y3SWpib1k');//Intake folder for test data
 var folderTestOut = DriveApp.getFolderById('0B5AX8tprgBH8ZGUzSEFka0dpVzA');//Intake folder for test data
-var logSheet = SpreadsheetApp.openById('18KuXT8NbG_MZJkUW2TYNX1EPlF_9HeZF_RbD7uHrlEA').getSheetByName('Log');
+var logSheet = SpreadsheetApp.openById('18KuXT8NbG_MZJkUW2TYNX1EPlF_9HeZF_RbD7uHrlEA').getSheetByName('Log');//output Console Log
 
 //Control intake of production files
 var testMode = true;
